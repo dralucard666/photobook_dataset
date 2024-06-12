@@ -6,6 +6,8 @@ from torch.utils.data import Dataset
 import numpy as np
 
 # Loads a PhotoBook segment data set object from file
+
+
 class SegmentDataset(Dataset):
     def __init__(self, data_dir, segment_file, vectors_file, split='train'):
 
@@ -21,9 +23,8 @@ class SegmentDataset(Dataset):
         for d in self.temp_dialogue_segments:
 
             if d['segment'] == []:
-                d['segment'] = [0] #pad empty segment
+                d['segment'] = [0]  # pad empty segment
                 d['length'] = 1
-
 
             self.dialogue_segments.append(d)
 
@@ -44,12 +45,12 @@ class SegmentDataset(Dataset):
 
         def collate_fn(data):
 
-            #print('collate',data)
+            # print('collate',data)
             max_src_length = max(d['length'] for d in data)
             max_target_images = max(len(d['targets']) for d in data)
             max_num_images = max([len(d['image_set']) for d in data])
 
-            #print(max_src_length, max_target_images, max_num_images)
+            # print(max_src_length, max_target_images, max_num_images)
 
             batch = defaultdict(list)
 
@@ -59,7 +60,7 @@ class SegmentDataset(Dataset):
                     if key == 'segment':
                         padded = sample['segment'] \
                             + [0] * (max_src_length-sample['length'])
-                        #print('seg', padded)
+                        # print('seg', padded)
 
                     elif key == 'image_set':
 
@@ -67,25 +68,26 @@ class SegmentDataset(Dataset):
 
                         padded = padded \
                             + [0] * (max_num_images-len(sample['image_set']))
-                        #print('img', padded)
+                        # print('img', padded)
 
                     elif key == 'targets':
 
-                        #print(sample['targets'])
+                        # print(sample['targets'])
                         padded = np.zeros(max_num_images)
                         padded[sample['targets']] = 1
 
-                        #print('tar', padded)
+                        # print('tar', padded)
 
                     else:
-                        #length of segment in number of words
+                        # length of segment in number of words
                         padded = sample[key]
 
                     batch[key].append(padded)
 
             for key in batch.keys():
-                #print(key, batch[key])
-                batch[key] = torch.Tensor(batch[key]).long().to(device)
+                # print(key, batch[key])
+                batch[key] = torch.Tensor(
+                    np.array(batch[key])).long().to(device)
 
             return batch
 

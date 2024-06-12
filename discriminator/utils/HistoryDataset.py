@@ -33,14 +33,14 @@ class HistoryDataset(Dataset):
 
         for chain in self.chains:
 
-            self.img2chain[chain['target']][chain['game_id']] = chain['segments']
-
+            self.img2chain[chain['target']
+                           ][chain['game_id']] = chain['segments']
 
         segments_added = []
 
-        print('processing',self.split)
+        print('processing', self.split)
 
-	# every segment in every chain, along with the relevant history
+        # every segment in every chain, along with the relevant history
         for chain in self.chains:
 
             if len(chain['segments']) < 1:
@@ -65,7 +65,8 @@ class HistoryDataset(Dataset):
                     lengths = cur_segment_obj['length']
 
                     if cur_segment_text == []:
-                        cur_segment_text = [0] #there is only one instance like this
+                        # there is only one instance like this
+                        cur_segment_text = [0]
                         lengths = 1
 
                     images = cur_segment_obj['image_set']
@@ -78,26 +79,28 @@ class HistoryDataset(Dataset):
                         if game_id in self.img2chain[im]:
                             temp_chain = self.img2chain[im][game_id]
 
-                            hist_segments = [t for t in temp_chain if t < segment_id]
+                            hist_segments = [
+                                t for t in temp_chain if t < segment_id]
 
                             if len(hist_segments) > 0:
                                 for h in hist_segments:
-                                    prev_chains[im].extend(self.segments[h]['segment']) #combine all prev histories
+                                    # combine all prev histories
+                                    prev_chains[im].extend(
+                                        self.segments[h]['segment'])
 
                             else:
-                                #no prev reference to that image
+                                # no prev reference to that image
                                 prev_chains[im] = []
 
                         else:
                             # image is in the game but never referred to
                             prev_chains[im] = []
 
-
                         prev_lengths[im] = len(prev_chains[im])
 
                     self.data[len(self.data)] = {'segment': cur_segment_text,
                                                  'image_set': images,
-                                                 'targets':targets,
+                                                 'targets': targets,
                                                  'length': lengths,
                                                  'prev_histories': prev_chains,
                                                  'prev_history_lengths': prev_lengths
@@ -121,7 +124,8 @@ class HistoryDataset(Dataset):
             max_src_length = max(d['length'] for d in data)
             max_target_images = max(len(d['targets']) for d in data)
             max_num_images = max([len(d['image_set']) for d in data])
-            max_prev_len = max([d['prev_history_lengths'][i] for d in data for i in d['image_set']])
+            max_prev_len = max([d['prev_history_lengths'][i]
+                               for d in data for i in d['image_set']])
 
             batch = defaultdict(list)
 
@@ -131,7 +135,7 @@ class HistoryDataset(Dataset):
 
                     if key == 'segment':
                         padded = sample['segment'] \
-                                 + [0] * (max_src_length - sample['length'])
+                            + [0] * (max_src_length - sample['length'])
                         # print('seg', padded)
 
                     elif key == 'image_set':
@@ -139,7 +143,7 @@ class HistoryDataset(Dataset):
                         padded = [int(img) for img in sample['image_set']]
 
                         padded = padded \
-                                 + [0] * (max_num_images - len(sample['image_set']))
+                            + [0] * (max_num_images - len(sample['image_set']))
                         # print('img', padded)
 
                     elif key == 'targets':
@@ -156,7 +160,7 @@ class HistoryDataset(Dataset):
                         len_per_img = []
 
                         for k in range(len(sample['image_set'])):
-                            #keep the order of imgs
+                            # keep the order of imgs
                             img_id = sample['image_set'][k]
 
                             len_per_img.append(len(sample[key][img_id]))
@@ -174,10 +178,9 @@ class HistoryDataset(Dataset):
 
             for key in batch.keys():
                 if key != 'prev_histories' and key != 'prev_history_lengths':
-                    batch[key] = torch.Tensor(batch[key]).long().to(device)
-
+                    batch[key] = torch.Tensor(
+                        np.array(batch[key])).long().to(device)
 
             return batch
 
         return collate_fn
-
