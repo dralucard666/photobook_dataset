@@ -17,7 +17,7 @@ import argparse
 import sys
 from os.path import dirname, abspath
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
-
+from tqdm import tqdm
 
 # print(torch.__version__) #0.4.1
 
@@ -747,14 +747,14 @@ if __name__ == '__main__':
 
         count = 0
 
-        for i, data in enumerate(training_loader):
+        for i, data in enumerate(tqdm(training_loader)):
 
             if breaking and count == 5:
                 break
 
             count += 1
 
-            segments_text = torch.tensor(np.array(data['segment']))
+            segments_text = torch.tensor(data['segment']).to(device)
 
             image_set = data['image_set']
             no_images = image_set.shape[1]
@@ -795,7 +795,7 @@ if __name__ == '__main__':
 
                 context_sum[b] = context_sum[b] / non_pad_item
 
-            lengths = data['length']
+            lengths = data['length'].cpu()
             targets = data['targets'].view(
                 temp_batch_size, no_images, 1).float()
             prev_histories = data['prev_histories']
