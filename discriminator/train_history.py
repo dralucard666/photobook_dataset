@@ -754,7 +754,7 @@ if __name__ == '__main__':
 
             count += 1
 
-            segments_text = torch.tensor(np.array(data['segment']))
+            segments_text = torch.tensor(np.array(data['segment'].cpu()))
 
             image_set = data['image_set']
             no_images = image_set.shape[1]
@@ -800,6 +800,14 @@ if __name__ == '__main__':
                 temp_batch_size, no_images, 1).float()
             prev_histories = data['prev_histories']
 
+            print(segments_text.device)
+            print(prev_histories.device)
+            print(lengths.device)
+            print(context_separate.device)
+            print(context_sum.device)
+            print(normalize.device)
+
+    	
             out = model(segments_text, prev_histories, lengths,
                         context_separate, context_sum, normalize, device)
 
