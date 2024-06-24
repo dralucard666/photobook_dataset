@@ -799,7 +799,7 @@ if __name__ == '__main__':
                 temp_batch_size, no_images, 1).float()
             prev_histories = data['prev_histories']
 
-            out = model(segments_text, prev_histories, lengths,
+            out = model(segments_text, prev_histories, lengths.cpu(),
                         context_separate, context_sum, normalize, device)
 
             if mask:
