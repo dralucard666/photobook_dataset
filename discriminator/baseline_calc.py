@@ -71,7 +71,7 @@ def evaluate(split_data_loader, dataset, breaking, normalize, mask, img_dim, mod
 
         count += 1
 
-        segments_text = torch.tensor(np.array(data['segment']))
+        segments_text = torch.tensor(data['segment'])
 
         normalizer += segments_text.shape[0]
 

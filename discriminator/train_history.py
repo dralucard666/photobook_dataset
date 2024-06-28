@@ -4,6 +4,7 @@ from utils.HistoryDataset import HistoryDataset
 import torch
 import pdb
 import numpy as np
+from tqdm import tqdm
 
 from torch import nn
 from torch import optim
@@ -11,6 +12,7 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import torch.utils.data
 
 from models.model_history import HistoryModelBlind
+from models.transformer2 import HistoryModelBlind
 import os
 import argparse
 
@@ -89,7 +91,7 @@ def evaluate(split_data_loader, dataset, breaking, normalize, mask, img_dim,
 
         count += 1
 
-        segments_text = torch.tensor(np.array(data['segment']))
+        segments_text = torch.tensor(data['segment'])
 
         normalizer += segments_text.shape[0]
 
@@ -134,7 +136,7 @@ def evaluate(split_data_loader, dataset, breaking, normalize, mask, img_dim,
             # average #not used in this model
             context_sum[b] = context_sum[b] / non_pad_item
 
-        lengths = data['length']
+        lengths = data['length'].cpu()
         targets = data['targets'].view(temp_batch_size, no_images, 1).float()
         prev_histories = data['prev_histories']
 
@@ -278,7 +280,6 @@ def gold_evaluate(split_data_loader, dataset, breaking, normalize, mask, img_dim
     segment_rank_res = dict()
 
     for ii, data in enumerate(split_data_loader):
-        print(data)
         seg_id = id_list[ii]
         segment_ranks = seg2ranks[str(seg_id)]
 
@@ -293,7 +294,7 @@ def gold_evaluate(split_data_loader, dataset, breaking, normalize, mask, img_dim
 
         count += 1
 
-        segments_text = torch.tensor(np.array(data['segment']))
+        segments_text = torch.tensor(data['segment'])
 
         normalizer += segments_text.shape[0]
 
@@ -338,7 +339,7 @@ def gold_evaluate(split_data_loader, dataset, breaking, normalize, mask, img_dim
             # average #not used in this model
             context_sum[b] = context_sum[b] / non_pad_item
 
-        lengths = data['length']
+        lengths = data['length'].cpu()
         targets = data['targets'].view(temp_batch_size, no_images, 1).float()
         prev_histories = data['prev_histories']
 
@@ -523,7 +524,7 @@ def gold_evaluate_write(split_data_loader, dataset, breaking, normalize, mask, i
 
                 count += 1
 
-                segments_text = torch.tensor(np.array(data['segment']))
+                segments_text = torch.tensor(data['segment'])
 
                 normalizer += segments_text.shape[0]
 
@@ -567,7 +568,7 @@ def gold_evaluate_write(split_data_loader, dataset, breaking, normalize, mask, i
 
                     context_sum[b] = context_sum[b] / non_pad_item  # average
 
-                lengths = data['length']
+                lengths = data['length'].cpu()
                 targets = data['targets'].view(
                     temp_batch_size, no_images, 1).float()
                 prev_histories = data['prev_histories']
@@ -747,14 +748,14 @@ if __name__ == '__main__':
 
         count = 0
 
-        for i, data in enumerate(training_loader):
+        for i, data in enumerate(tqdm(training_loader)):
 
             if breaking and count == 5:
                 break
 
             count += 1
 
-            segments_text = torch.tensor(np.array(data['segment']))
+            segments_text = torch.tensor(data['segment'])
 
             image_set = data['image_set']
             no_images = image_set.shape[1]
@@ -795,11 +796,11 @@ if __name__ == '__main__':
 
                 context_sum[b] = context_sum[b] / non_pad_item
 
-            lengths = data['length']
+            lengths = data['length'].cpu()
             targets = data['targets'].view(
                 temp_batch_size, no_images, 1).float()
             prev_histories = data['prev_histories']
-
+    	
             out = model(segments_text, prev_histories, lengths,
                         context_separate, context_sum, normalize, device)
 
