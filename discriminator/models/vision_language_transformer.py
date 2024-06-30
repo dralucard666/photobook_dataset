@@ -3,28 +3,25 @@ from torch import nn
 import numpy as np
 
 from transformers import BertTokenizer
-from encoder import TextEncoder
 from torchvision import transforms
-
-from encoder import ImageEncoder, TextEncoder
 
 
 class VisionLanguageTransformer(nn.Module):
     def __init__(self) -> None:
         super().__init__()
-        
-        self.cross_attention = nn.MultiheadAttention(embed_dim=768, num_heads=8)
+
+        self.cross_attention = nn.MultiheadAttention(
+            embed_dim=768, num_heads=8)
         self.dense1 = nn.Linear(768, 256)
         self.dense2 = nn.Linear(256, 1)
 
-    def forward(self, x):
-        # TODO: Match with DataLoader
-        text_features, img_features = x
-
+    def forward(self, text_features, img_features):
         # Apply cross attention
+
         text_features = text_features.permute(1, 0, 2)
         img_features = img_features.permute(1, 0, 2)
-        cross_attended_features, _ = self.cross_attention(text_features, img_features, img_features)
+        cross_attended_features, _ = self.cross_attention(
+            text_features, img_features, img_features)
 
         # Pooling
         pooled_features = cross_attended_features.mean(dim=0)
@@ -39,7 +36,7 @@ class VisionLanguageTransformer(nn.Module):
 
 
 if __name__ == '__main__':
-    batch_size = 16
+    batch_size = 6
     sentence = "This is a test sentence"
     img = torch.randn(batch_size, 3, 244, 244)
 
@@ -53,7 +50,8 @@ if __name__ == '__main__':
 
     img = torch.stack([transform(i) for i in img])
 
-    encoding = tokenizer([sentence] * batch_size, padding=True, truncation=True, return_tensors='pt')
+    encoding = tokenizer([sentence] * batch_size, padding=True,
+                         truncation=True, return_tensors='pt')
     input_ids = encoding['input_ids']
     attention_mask = encoding['attention_mask']
     text_features = text_encoder(input_ids, attention_mask)
@@ -67,5 +65,5 @@ if __name__ == '__main__':
 
     model = VisionLanguageTransformer()
 
-    outputs = model(batch)
-    print(outputs.shape)
+    outputs = model(text_features, img_features)
+    print(outputs)

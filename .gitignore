@@ -4,7 +4,7 @@ transformer/data/**
 discriminator/data/new_embedding/train.json
 discriminator/data/new_embedding/test.json
 discriminator/data/new_embedding/val.json
-
+discriminator/data/new_embedding/encoded*
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,python
 

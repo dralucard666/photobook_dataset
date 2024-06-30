@@ -36,7 +36,9 @@ def process_data(json_data):
                 'image_path': key,
                 'image': load_image(image_path),
                 'messages': [message['Message_Text']
-                             for message in json_data[key]]
+                             for message in json_data[key]],
+                'all_images': [message['All_Images']
+                               for message in json_data[key]],
             }
             all_objects.append(object)
 
@@ -80,14 +82,13 @@ def encode_obj(all_objects):
 
 
 def main():
-    for file_name in os.listdir(json_folder):
-        if '_' in file_name and file_name.endswith('.json') and not 'encoded' in file_name:
-            with open(os.path.join(json_folder, file_name), 'r') as file:
-                data = json.load(file)
-                batches = process_data(data)
-
-            with open(os.path.join(json_folder, 'encoded_'+file_name), 'w') as file:
-                json.dump(batches, file)
+    for file_name in ['test', 'train', 'val']:
+        file_name = 'transformed_'+file_name+'.json'
+        with open(os.path.join(json_folder, file_name), 'r') as file:
+            data = json.load(file)
+            batches = process_data(data)
+        with open(os.path.join(json_folder, 'encoded_'+file_name), 'w') as file:
+            json.dump(batches, file)
 
 
 if __name__ == '__main__':
