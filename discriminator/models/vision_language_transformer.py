@@ -32,6 +32,8 @@ class VisionLanguageTransformer(nn.Module):
         x = self.dense2(x)
         x = x.squeeze(-1)
 
+        x = nn.Sigmoid()(x)
+
         return x
 
 
@@ -58,8 +60,8 @@ if __name__ == '__main__':
 
     img_features = visual_encoder(img)
 
-    text_features = text_features.unsqueeze(1)
-    img_features = img_features.unsqueeze(1)
+    text_features = text_features
+    img_features = img_features
 
     batch = (text_features, img_features)
 

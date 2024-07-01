@@ -85,21 +85,25 @@ def evaluate(split_data_loader, model, epoch, args, timestamp, best_accuracy, be
 
     for ii, data in enumerate(split_data_loader):
 
-        text_feature = data['text_feature'][0]
+        text_features = data['text_feature']
         img_features = data['img_features']
-        img_features = img_features.squeeze(0)
         ground_truth = data['ground_truth']
-        ground_truth = torch.cat(ground_truth, dim=0)
-        outputs = model(text_feature, img_features)
+        ground_truth = torch.cat(ground_truth, dim=0).to(torch.float64)
+        
+        x, y, z = text_features.shape
+        outputs = model(text_features.reshape((x * y, z)).unsqueeze(1), img_features.reshape((x * y, z)).unsqueeze(1))
 
-        sig_out = torch.sigmoid(outputs)
+        ##sig_out = torch.sigmoid(outputs)
 
         loss = criterion(outputs, ground_truth)
 
         # predictions according to the threshold
-        preds = sig_out.data
+        preds = outputs
         preds[preds >= threshold] = 1
         preds[preds < threshold] = 0
+
+        preds = preds.reshape((x, y))
+        ground_truth = ground_truth.reshape((x, y))
 
         for p in range(preds.shape[0]):
 
@@ -128,78 +132,78 @@ def evaluate(split_data_loader, model, epoch, args, timestamp, best_accuracy, be
 
         losses.append(loss.item())
 
-    # subtract count of pads
-    pad_0_count = normalizer_01 - all_non_pad
-    normalizer_01 = normalizer_01 - pad_0_count
-    normalizer_0 = normalizer_0 - pad_0_count
-    matching_0 = matching_0 - pad_0_count
-
-    print(pad_0_count, normalizer_01, normalizer_0, matching_0)
-
-    print('Target 0 -', matching_0, normalizer_0)
-    print('Target 1 -', matching_1, normalizer_1)
-    print('Normalizer -', normalizer_01)
-
-    print()
-
-    check_accs = (matching_0 + matching_1) / normalizer_01
-    check_accs_0 = matching_0 / normalizer_0
-    check_accs_1 = matching_1 / normalizer_1
-    print('0-matching acc:', check_accs_0)
-    print('1-matching acc:', check_accs_1)
-    print('All-matching acc:', check_accs)
-
-    print()
-
-    print('Fully matching:', matching)
-    # normalizer is batch size, matching is the matching of the whole pred & target
-    print('Normalizer:', normalizer)
-    accs = matching / normalizer
+    ### subtract count of pads
+    ##pad_0_count = normalizer_01 - all_non_pad
+    ##normalizer_01 = normalizer_01 - pad_0_count
+    ##normalizer_0 = normalizer_0 - pad_0_count
+    ##matching_0 = matching_0 - pad_0_count
+##
+    ##print(pad_0_count, normalizer_01, normalizer_0, matching_0)
+##
+    ##print('Target 0 -', matching_0, normalizer_0)
+    ##print('Target 1 -', matching_1, normalizer_1)
+    ##print('Normalizer -', normalizer_01)
+##
+    ##print()
+##
+    ##check_accs = (matching_0 + matching_1) / normalizer_01
+    ##check_accs_0 = matching_0 / normalizer_0
+    ##check_accs_1 = matching_1 / normalizer_1
+    ##print('0-matching acc:', check_accs_0)
+    ##print('1-matching acc:', check_accs_1)
+    ##print('All-matching acc:', check_accs)
+##
+    ##print()
+##
+    ##print('Fully matching:', matching)
+    ### normalizer is batch size, matching is the matching of the whole pred & target
+    ##print('Normalizer:', normalizer)
+    accs = matching / (x * y)
 
     mean_loss = np.mean(losses)
     print('Accuracy:', accs)
     print('Mean loss:', mean_loss)
 
-    prec_1 = matching_1 / (matching_1 + non_match_1)
+    ##prec_1 = matching_1 / (matching_1 + non_match_1)
 
-    recall_1 = check_accs_1
+    ##recall_1 = check_accs_1
 
-    prec_0 = matching_0 / (matching_0 + non_match_0)
-    recall_0 = check_accs_0
+    ##prec_0 = matching_0 / (matching_0 + non_match_0)
+    ##recall_0 = check_accs_0
 
     beta = 1
 
-    f1_0 = get_f1(prec_0, recall_0, beta)
-    f1_1 = get_f1(prec_1, recall_1, beta)
+    ##f1_0 = get_f1(prec_0, recall_0, beta)
+    ##f1_1 = get_f1(prec_1, recall_1, beta)
 
-    f1 = (f1_0 + weight * f1_1) / (1 + weight)
+    ##f1 = (f1_0 + weight * f1_1) / (1 + weight)
 
-    print()
-    print('Precision 0:', prec_0)
-    print('Precision 1:', prec_1)
+    ##print()
+    ##print('Precision 0:', prec_0)
+    ##print('Precision 1:', prec_1)
 
-    print('Recall 0:', recall_0)
-    print('Recall 1:', recall_1)
+    ##print('Recall 0:', recall_0)
+    ##print('Recall 1:', recall_1)
 
-    print()
+    ##print()
 
-    print('F1:', f1)
-    print('F1_0:', f1_0)
-    print('F1_1:', f1_1)
+    ##print('F1:', f1)
+    ##print('F1_0:', f1_0)
+    ##print('F1_1:', f1_1)
 
-    accs_to_write = f1
-    if isValidation:
-        if mean_loss < best_loss:
-            best_loss = mean_loss
-            save_model(model, epoch, accs_to_write,
-                       mean_loss, args, 'loss', timestamp)
-
-        if accs_to_write > best_accuracy:
-            best_accuracy = accs_to_write
-            save_model(model, epoch, accs_to_write,
-                       mean_loss, args, 'accs', timestamp)
-
-        return best_accuracy, best_loss, f1, mean_loss
+    ##accs_to_write = f1
+    ##if isValidation:
+    ##    if mean_loss < best_loss:
+    ##        best_loss = mean_loss
+    ##        save_model(model, epoch, accs_to_write,
+    ##                   mean_loss, args, 'loss', timestamp)
+##
+    ##    if accs_to_write > best_accuracy:
+    ##        best_accuracy = accs_to_write
+    ##        save_model(model, epoch, accs_to_write,
+    ##                   mean_loss, args, 'accs', timestamp)
+##
+    return best_accuracy, best_loss, 0, mean_loss
 
 # used in the gold_eval_test_*.py code to get the results on the test set
 # input not batched
@@ -535,10 +539,10 @@ if __name__ == '__main__':
 
     # prepare dataloaders
     load_params = {'batch_size': batch_size,
-                   'shuffle': True, }
+                   'shuffle': True}
 
     load_params_test = {'batch_size': batch_size,
-                        'shuffle': False, 'collate_fn': HistoryDataset.get_collate_fn(device)}
+                        'shuffle': False}
 
     training_loader = torch.utils.data.DataLoader(trainset, **load_params)
 
@@ -569,14 +573,14 @@ if __name__ == '__main__':
 
         for i, data in enumerate(tqdm(training_loader)):
 
-            text_feature = data['text_feature'][0]
+            text_features = data['text_feature']
             img_features = data['img_features']
-            img_features = img_features.squeeze(0)
             image_keys = data['image_keys']
             ground_truth = data['ground_truth']
-            ground_truth = torch.cat(ground_truth, dim=0)
-
-            outputs = model(text_feature, img_features)
+            ground_truth = torch.cat(ground_truth, dim=0).to(torch.float64)
+            	
+            x, y, z = text_features.shape
+            outputs = model(text_features.reshape((x * y, z)).unsqueeze(1), img_features.reshape((x * y, z)).unsqueeze(1))
 
             model.zero_grad()
 

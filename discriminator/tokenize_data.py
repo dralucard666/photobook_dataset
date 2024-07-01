@@ -67,10 +67,6 @@ def encode_obj(all_objects):
         img = torch.stack([obj['image']])
         img_features = visual_encoder(img)
 
-        text_features = text_features.view(
-            text_size, -1, text_features.size(-1))
-        img_features = img_features.unsqueeze(1)
-
         new_obj.append({
             **obj,
             'image': None,

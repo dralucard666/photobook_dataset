@@ -19911,6 +19911,21 @@
             ]
         }
     ],
+    "person_boat/COCO_train2014_000000012574.jpg": [
+      {
+        "Game_ID": 1185,
+        "Message_Speaker": "B",
+        "Message_Text": "Well, do you have a picture of a boy in a canoe holding an oar?",
+        "All_Images": [
+          "person_boat/COCO_train2014_000000012574.jpg",
+          "person_boat/COCO_train2014_000000004834.jpg",
+          "person_boat/COCO_train2014_000000302166.jpg",
+          "person_boat/COCO_train2014_000000079517.jpg",
+          "person_boat/COCO_train2014_000000424434.jpg",
+          "person_boat/COCO_train2014_000000191616.jpg"
+        ]
+      }
+    ],
     "person_boat/COCO_train2014_000000424434.jpg": [
         {
             "Game_ID": 36,

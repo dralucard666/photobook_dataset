@@ -21,7 +21,7 @@ class TransformerDataset(Dataset):
             all_images_keys = item['all_images']
             for idx in range(len(text_features)):
                 text_feature = text_features[idx]
-                text_feature = torch.FloatTensor(text_feature).repeat(6, 1, 1)
+                text_feature = torch.FloatTensor(text_feature).repeat(6, 1)
                 self.unrolled_data.append({
                     'key': key,
                     'text_feature': text_feature,
