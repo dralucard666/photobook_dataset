@@ -32,8 +32,9 @@ class VisionLanguageTransformer(nn.Module):
         x = self.dense2(x)
         x = x.squeeze(-1)
 
-        x = nn.Sigmoid()(x)
-
+        #x = nn.Sigmoid()(x)
+        x = x.reshape(-1, 6)
+        x = nn.Softmax(dim=1)(x)
         return x
 
 
