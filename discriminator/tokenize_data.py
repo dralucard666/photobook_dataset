@@ -7,6 +7,7 @@ from PIL import Image
 from transformers import BertTokenizer
 from torchvision import transforms
 from models.encoder import ImageEncoder, TextEncoder
+from tqdm import tqdm
 
 # Define paths and constants
 json_folder = './data/new_embedding/'
@@ -54,8 +55,7 @@ def load_image(image_path):
 def encode_obj(all_objects):
     new_obj = []
 
-    for obj in all_objects:
-        print(obj['image_path'])
+    for obj in tqdm(all_objects):
         text_size = len(obj['messages'])
         encoding = tokenizer(obj['messages'], padding=True,
                              truncation=True, return_tensors='pt')
