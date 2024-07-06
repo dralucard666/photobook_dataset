@@ -56,6 +56,8 @@ class VisionLanguageTransformer(nn.Module):
         self.cross_attention = nn.MultiheadAttention(embed_dim, num_heads)
         self.fc1 = nn.Linear(embed_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.norm1 = nn.LayerNorm(hidden_dim)
+        self.norm2 = nn.LayerNorm(hidden_dim)
 
         self.blocks = [SelfAttentionBlock(hidden_dim, num_heads) for _ in range(N_blocks)]
 
@@ -73,10 +75,15 @@ class VisionLanguageTransformer(nn.Module):
         # Apply cross-attention: text_features as query, image_features as key and value
         attn_output, _ = self.cross_attention(text_features, image_features, image_features)
         attn_output = attn_output.permute(1, 0, 2).squeeze(1)  # Shape: (batch_size, embed_dim)
+
+        x = self.norm1(attn_output)
+        residual = x
         
         # Pass through fully connected layers
-        x = F.relu(self.fc1(attn_output))  # Shape: (batch_size, hidden_dim)
+        x = F.relu(self.fc1(x))  # Shape: (batch_size, hidden_dim)
         x = F.relu(self.fc2(x)) # Shape: (batch_size, hidden_dim)
+        x = residual + x
+        x = self.norm2(x)
 
         # Apply self-attention blocks
         for block in self.blocks:
