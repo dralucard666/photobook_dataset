@@ -128,7 +128,6 @@ if __name__ == '__main__':
 
             loss.backward()
             optimizer.step()
-            scheduler.step()
 
             total_loss += loss.item()
 
@@ -138,6 +137,8 @@ if __name__ == '__main__':
 
         print(f"Epoch {epoch + 1}, Loss: {total_loss / len(train_loader)}, Train Accuracy: {correct / total}, Val Accuracy: {val_acc}")
         print(all_outputs, all_outputs.sum())
+        
+        scheduler.step()
 
     # save model
     # torch.save(model.state_dict(), 'model.pth')
