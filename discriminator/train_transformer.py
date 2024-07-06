@@ -14,9 +14,11 @@ from PIL import Image, ImageOps
 import matplotlib.pyplot as plt
 
 
-LEARNING_RATE = 6e-5
+LEARNING_RATE = 1e-4
 BATCH_SIZE = 64 * 4
 N_EPOCHS = 100
+
+LR_GAMMA = .99
 
 
 def plot_samples(num_samples=5):
@@ -93,13 +95,13 @@ if __name__ == '__main__':
     criterion = nn.CrossEntropyLoss()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=LR_GAMMA, last_epoch=-1)
+    print(f'Learning rate decaying exponentially with gamma {LR_GAMMA} from {LEARNING_RATE} to {scheduler.get_last_lr}')
 
     iteration_losses = []
     train_accs, val_accs = [], []
 
-    for epoch in range(1):
-        if epoch == 10:
-            optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
+    for epoch in range(N_EPOCHS):
 
         model.train()
         total_loss = 0
@@ -126,6 +128,7 @@ if __name__ == '__main__':
 
             loss.backward()
             optimizer.step()
+            scheduler.step()
 
             total_loss += loss.item()
 
