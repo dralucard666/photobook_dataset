@@ -115,7 +115,7 @@ if __name__ == '__main__':
 
             outputs = model(text_embedding, image_embeddings)
 
-            labels = torch.tensor(label)
+            labels = label.clone()
             loss = criterion(outputs, labels)
             iteration_losses.append(loss.cpu().detach().numpy().item())
 
