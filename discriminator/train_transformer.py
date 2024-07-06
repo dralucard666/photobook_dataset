@@ -10,7 +10,7 @@ import numpy as np
 from tokenize_data_2 import PhotoBookDataset
 from torch.utils.data import DataLoader
 
-from PIL import Image
+from PIL import Image, ImageOps
 import matplotlib.pyplot as plt
 
 
@@ -162,22 +162,28 @@ if __name__ == '__main__':
         label = data['label']
         text = data['raw_text']
 
-        axs = subfigs[idx].subplots(1, len(images))
-        for j, img in enumerate(images):
-            if j == label:
-                all_green = Image.new('RGB', (img.width + 40, img.height + 40), (0, 255, 0))
-                all_green.paste(img, (20, 20))
-                img = all_green
-
-            axs[j].imshow(img)
-            axs[j].axis('off')
-
         text_embedding, image_embeddings, label = val_dataset[i]
         text_embedding, image_embeddings = text_embedding.to(device), image_embeddings.to(device)
 
         outputs = model(text_embedding.unsqueeze(0), image_embeddings.unsqueeze(0))
 
-        subfigs[idx].suptitle(f"{text} - Prediction: {outputs.argmax().item()} - Confidence: {outputs.max().item()}")
+        prediction = outputs.argmax().item()
+        confidence = outputs.max().item()
+
+        padding = 20
+        axs = subfigs[idx].subplots(1, len(images))
+        for j, img in enumerate(images):
+            if j == label == prediction:  # Ground truth and model prediction match
+                img = ImageOps.expand(img, border=padding, fill=(255, 255, 0))
+            elif j == label:  # Image is ground truth
+                img = ImageOps.expand(img, border=padding, fill=(0, 255, 0))
+            elif j == prediction:  # Image is predicted by model
+                img = ImageOps.expand(img, border=padding, fill=(255, 0, 0))
+
+            axs[j].imshow(img)
+            axs[j].axis('off')
+
+        subfigs[idx].suptitle(f"{text} - Prediction: {prediction} - Confidence: {confidence}")
     plt.show()
 
 
