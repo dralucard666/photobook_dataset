@@ -49,7 +49,7 @@ class SelfAttentionBlock(nn.Module):
 
 
 class VisionLanguageTransformer(nn.Module):
-    def __init__(self, embed_dim=768, num_heads=8, hidden_dim=256, N_blocks=2):
+    def __init__(self, embed_dim=768, num_heads=8, hidden_dim=768, N_blocks=2):
         super(VisionLanguageTransformer, self).__init__()
         self.text_fc = nn.Linear(embed_dim, embed_dim)
         self.image_fc = nn.Linear(embed_dim, embed_dim)
