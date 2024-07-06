@@ -49,19 +49,19 @@ class SelfAttentionBlock(nn.Module):
 
 
 class VisionLanguageTransformer(nn.Module):
-    def __init__(self, embed_dim=768, num_heads=8, hidden_dim=768, N_blocks=2):
+    def __init__(self, embed_dim=768, num_heads=8, N_blocks=2):
         super(VisionLanguageTransformer, self).__init__()
         self.text_fc = nn.Linear(embed_dim, embed_dim)
         self.image_fc = nn.Linear(embed_dim, embed_dim)
         self.cross_attention = nn.MultiheadAttention(embed_dim, num_heads)
-        self.fc1 = nn.Linear(embed_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.norm1 = nn.LayerNorm(hidden_dim)
-        self.norm2 = nn.LayerNorm(hidden_dim)
+        self.fc1 = nn.Linear(embed_dim, embed_dim)
+        self.fc2 = nn.Linear(embed_dim, embed_dim)
+        self.norm1 = nn.LayerNorm(embed_dim)
+        self.norm2 = nn.LayerNorm(embed_dim)
 
-        self.blocks = [SelfAttentionBlock(hidden_dim, num_heads) for _ in range(N_blocks)]
+        self.blocks = [SelfAttentionBlock(embed_dim, num_heads) for _ in range(N_blocks)]
 
-        self.fc_out= nn.Linear(hidden_dim, 6)  # Output size of 6
+        self.fc_out= nn.Linear(embed_dim, 6)  # Output size of 6
 
     def forward(self, text_embedding, image_embeddings):
         # Project the embeddings to the same dimension
@@ -80,8 +80,8 @@ class VisionLanguageTransformer(nn.Module):
         residual = x
         
         # Pass through fully connected layers
-        x = F.relu(self.fc1(x))  # Shape: (batch_size, hidden_dim)
-        x = F.relu(self.fc2(x)) # Shape: (batch_size, hidden_dim)
+        x = F.relu(self.fc1(x))  # Shape: (batch_size, embed_dim)
+        x = F.relu(self.fc2(x)) # Shape: (batch_size, embed_dim)
         x = residual + x
         x = self.norm2(x)
 
