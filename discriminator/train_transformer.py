@@ -14,8 +14,8 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 
-LEARNING_RATE = 1e-4
-BATCH_SIZE = 1000
+LEARNING_RATE = 6e-5
+BATCH_SIZE = 64 * 4
 N_EPOCHS = 100
 
 
@@ -56,13 +56,14 @@ def get_class_prior(dataset: PhotoBookDataset):
     return class_counts / class_counts.sum()
 
 
-def evaluate(model, dataset: PhotoBookDataset):
+def evaluate(model, dataset: PhotoBookDataset, device='cpu'):
     model.eval()
     correct = 0
     total = 0
     loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False)
     for i, data in enumerate(loader):
         text_embedding, image_embeddings, label = data
+        text_embedding, image_embeddings, label = text_embedding.to(device), image_embeddings.to(device), label.to(device)
 
         outputs = model(text_embedding, image_embeddings)
 
@@ -74,6 +75,8 @@ def evaluate(model, dataset: PhotoBookDataset):
 
 
 if __name__ == '__main__':
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     #plot_samples()
     #print(get_class_prior(PhotoBookDataset('train')))
     train_dataset = PhotoBookDataset('train')
@@ -81,7 +84,8 @@ if __name__ == '__main__':
 
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 
-    model = VisionLanguageTransformer()
+    model = VisionLanguageTransformer(N_blocks=6 ,device=device)
+    model.to(device)
 
     # load model
     #model.load_state_dict(torch.load('model.pth'))
@@ -93,7 +97,7 @@ if __name__ == '__main__':
     iteration_losses = []
     train_accs, val_accs = [], []
 
-    for epoch in range(100):
+    for epoch in range(1):
         if epoch == 10:
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 
@@ -103,6 +107,7 @@ if __name__ == '__main__':
         correct, total = 0, 0
         for i, data in enumerate(tqdm(train_loader)):
             text_embedding, image_embeddings, label = data
+            text_embedding, image_embeddings, label = text_embedding.to(device), image_embeddings.to(device), label.to(device)
 
             optimizer.zero_grad()
 
@@ -110,7 +115,7 @@ if __name__ == '__main__':
 
             labels = torch.tensor(label)
             loss = criterion(outputs, labels)
-            iteration_losses.append(loss.detach().numpy().item())
+            iteration_losses.append(loss.cpu().detach().numpy().item())
 
             # for each output, get the index of the highest value and increment the corresponding index in all_outputs
             for output in outputs:
@@ -124,7 +129,7 @@ if __name__ == '__main__':
 
             total_loss += loss.item()
 
-        val_acc = evaluate(model, val_dataset)
+        val_acc = evaluate(model, val_dataset, device)
         train_accs.append(correct / total)
         val_accs.append(val_acc)
 
@@ -168,6 +173,7 @@ if __name__ == '__main__':
             axs[j].axis('off')
 
         text_embedding, image_embeddings, label = val_dataset[i]
+        text_embedding, image_embeddings = text_embedding.to(device), image_embeddings.to(device)
 
         outputs = model(text_embedding.unsqueeze(0), image_embeddings.unsqueeze(0))
 
