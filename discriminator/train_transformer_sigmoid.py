@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 LEARNING_RATE = 2e-4
 BATCH_SIZE = 64 * 4
-N_EPOCHS = 100
+N_EPOCHS = 250
 THRESHOLD = .8
 
 LR_GAMMA = .99
@@ -72,10 +72,10 @@ def evaluate(model, dataset: PhotoBookDataset, device='cpu'):
         outputs = model(text_embedding, image_embeddings)
 
         one_hot_labels = F.one_hot(label)
-        tp += torch.logical_and(outputs > THRESHOLD, one_hot_labels).sum().item()
-        tn += torch.logical_and(outputs < THRESHOLD, ~one_hot_labels).sum().item()
-        fp += torch.logical_and(outputs > THRESHOLD, ~one_hot_labels).sum().item()
-        fn += torch.logical_and(outputs < THRESHOLD, one_hot_labels).sum().item()
+        tp += torch.logical_and(outputs > THRESHOLD, one_hot_labels).sum().item() + 1e-6
+        tn += torch.logical_and(outputs < THRESHOLD, ~one_hot_labels).sum().item() + 1e-6
+        fp += torch.logical_and(outputs > THRESHOLD, ~one_hot_labels).sum().item() + 1e-6
+        fn += torch.logical_and(outputs < THRESHOLD, one_hot_labels).sum().item() + 1e-6
 
     accuracy = (tp + tn) / (tp + tn + fp + fn)
     precision = tp / (tp + fp)
@@ -83,7 +83,6 @@ def evaluate(model, dataset: PhotoBookDataset, device='cpu'):
     f1 = (2 * recall * precision) / (recall + precision)
 
     return accuracy, precision, recall, f1
-
 
 
 if __name__ == '__main__':
@@ -102,7 +101,7 @@ if __name__ == '__main__':
     # load model
     #model.load_state_dict(torch.load('model.pth'))
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.BCELoss()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=LR_GAMMA, last_epoch=-1)
@@ -125,20 +124,20 @@ if __name__ == '__main__':
             optimizer.zero_grad()
 
             outputs = model(text_embedding, image_embeddings)
+            one_hot_labels = F.one_hot(label)
 
             labels = label.clone()
-            loss = criterion(outputs, labels)
+            loss = criterion(outputs, one_hot_labels.to(torch.float32))
             iteration_losses.append(loss.cpu().detach().numpy().item())
 
             # for each output, get the index of the highest value and increment the corresponding index in all_outputs
             for output in outputs:
                 all_outputs[output.argmax().item()] += 1
 
-            one_hot_labels = F.one_hot(label)
-            tp += torch.logical_and(outputs > THRESHOLD, one_hot_labels).sum().item()
-            tn += torch.logical_and(outputs < THRESHOLD, ~one_hot_labels).sum().item()
-            fp += torch.logical_and(outputs > THRESHOLD, ~one_hot_labels).sum().item()
-            fn += torch.logical_and(outputs < THRESHOLD, one_hot_labels).sum().item()
+            tp += torch.logical_and(outputs > THRESHOLD, one_hot_labels).sum().item() + 1e-6
+            tn += torch.logical_and(outputs < THRESHOLD, ~one_hot_labels).sum().item() + 1e-6
+            fp += torch.logical_and(outputs > THRESHOLD, ~one_hot_labels).sum().item() + 1e-6
+            fn += torch.logical_and(outputs < THRESHOLD, one_hot_labels).sum().item() + 1e-6
 
             loss.backward()
             optimizer.step()
