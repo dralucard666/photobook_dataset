@@ -10,6 +10,8 @@ from transformers import BertTokenizer
 from torchvision import transforms
 from models.encoder import ImageEncoder, TextEncoder
 
+import random
+
 from PIL import Image
 
 EMBED_BASE_PATH = 'data/new_embedding'
@@ -27,7 +29,7 @@ class PhotoBookDataset(Dataset):
         with open(os.path.join(EMBED_BASE_PATH, 'image_embeddings.json'), 'r') as f:
             self.image_embeddings = json.load(f)
 
-        print(len(self.image_embeddings))
+        self.shuffle_images: bool = False
 
     def __len__(self):
         return len(self.data)
@@ -35,6 +37,16 @@ class PhotoBookDataset(Dataset):
     def __getitem__(self, idx):
         item = self.data[idx]
         text_embedding = torch.FloatTensor(item['text_embedding'])
+        # image_paths = item['image_paths']
+        # correct_path = image_paths[item['label']]
+
+        # if self.shuffle_images:
+        #     random.shuffle(image_paths)
+
+        # label = image_paths.index(correct_path)
+        # image_embeddings = [self.image_embeddings[img] for img in image_paths]
+
+
         image_embeddings = [self.image_embeddings[img] for img in item['image_paths']]
         image_embeddings = torch.FloatTensor(image_embeddings)
         label = item['label']

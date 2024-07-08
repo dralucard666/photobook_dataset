@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 
 LEARNING_RATE = 1e-4
-BATCH_SIZE = 1000
+BATCH_SIZE = 256
 N_EPOCHS = 100
 
 
@@ -77,6 +77,7 @@ if __name__ == '__main__':
     #plot_samples()
     #print(get_class_prior(PhotoBookDataset('train')))
     train_dataset = PhotoBookDataset('train')
+    train_dataset.shuffle_images = True
     val_dataset = PhotoBookDataset('val')
 
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
