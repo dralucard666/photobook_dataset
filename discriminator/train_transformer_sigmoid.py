@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 LEARNING_RATE = 2e-4
 BATCH_SIZE = 64 * 4
-N_EPOCHS = 5
+N_EPOCHS = 100
 THRESHOLD = .8
 
 LR_GAMMA = .99
