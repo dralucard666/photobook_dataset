@@ -49,7 +49,7 @@ class SelfAttentionBlock(nn.Module):
 
 
 class VisionLanguageTransformer(nn.Module):
-    def __init__(self, embed_dim=768, num_heads=8, N_blocks=6):
+    def __init__(self, embed_dim=768, num_heads=8, N_blocks=2, device='cpu'):
         super(VisionLanguageTransformer, self).__init__()
         self.text_fc = nn.Linear(embed_dim, embed_dim)
         self.image_fc = nn.Linear(embed_dim, embed_dim)
@@ -59,7 +59,7 @@ class VisionLanguageTransformer(nn.Module):
         self.norm1 = nn.LayerNorm(embed_dim)
         self.norm2 = nn.LayerNorm(embed_dim)
 
-        self.blocks = [SelfAttentionBlock(embed_dim, num_heads) for _ in range(N_blocks)]
+        self.blocks = [SelfAttentionBlock(embed_dim, num_heads).to(device) for _ in range(N_blocks)]
 
         self.fc_out= nn.Linear(embed_dim, 6)  # Output size of 6
 
