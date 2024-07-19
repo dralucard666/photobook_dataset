@@ -1,8 +1,10 @@
 from data_loader import TransformerDataset
-from models.vision_language_transformer import VisionLanguageTransformer
+from models.vision_language_transformer_sigmoid import VisionLanguageTransformer
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
+
 from tqdm import tqdm
 import random
 import numpy as np
@@ -16,7 +18,8 @@ import matplotlib.pyplot as plt
 
 LEARNING_RATE = 2e-4
 BATCH_SIZE = 64 * 4
-N_EPOCHS = 100
+N_EPOCHS = 5
+THRESHOLD = .8
 
 LR_GAMMA = .99
 
@@ -60,19 +63,26 @@ def get_class_prior(dataset: PhotoBookDataset):
 
 def evaluate(model, dataset: PhotoBookDataset, device='cpu'):
     model.eval()
-    correct = 0
-    total = 0
     loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False)
+    tp, tn, fp, fn = 0, 0, 0, 0
     for i, data in enumerate(loader):
         text_embedding, image_embeddings, label = data
         text_embedding, image_embeddings, label = text_embedding.to(device), image_embeddings.to(device), label.to(device)
 
         outputs = model(text_embedding, image_embeddings)
 
-        correct += (outputs.argmax(dim=1) == label).sum().item()
-        total += len(label)
+        one_hot_labels = F.one_hot(label)
+        tp += torch.logical_and(outputs > THRESHOLD, one_hot_labels).sum().item()
+        tn += torch.logical_and(outputs < THRESHOLD, ~one_hot_labels).sum().item()
+        fp += torch.logical_and(outputs > THRESHOLD, ~one_hot_labels).sum().item()
+        fn += torch.logical_and(outputs < THRESHOLD, one_hot_labels).sum().item()
 
-    return correct / total
+    accuracy = (tp + tn) / (tp + tn + fp + fn)
+    precision = tp / (tp + fp)
+    recall = tp / (tp + fn)
+    f1 = (2 * recall * precision) / (recall + precision)
+
+    return accuracy, precision, recall, f1
 
 
 
@@ -107,6 +117,7 @@ if __name__ == '__main__':
         total_loss = 0
         all_outputs = np.zeros(6)
         correct, total = 0, 0
+        tp, tn, fp, fn = 0, 0, 0, 0
         for i, data in enumerate(tqdm(train_loader)):
             text_embedding, image_embeddings, label = data
             text_embedding, image_embeddings, label = text_embedding.to(device), image_embeddings.to(device), label.to(device)
@@ -123,19 +134,23 @@ if __name__ == '__main__':
             for output in outputs:
                 all_outputs[output.argmax().item()] += 1
 
-            correct += (outputs.argmax(dim=1) == label).sum().item()
-            total += len(label)
+            one_hot_labels = F.one_hot(label)
+            tp += torch.logical_and(outputs > THRESHOLD, one_hot_labels).sum().item()
+            tn += torch.logical_and(outputs < THRESHOLD, ~one_hot_labels).sum().item()
+            fp += torch.logical_and(outputs > THRESHOLD, ~one_hot_labels).sum().item()
+            fn += torch.logical_and(outputs < THRESHOLD, one_hot_labels).sum().item()
 
             loss.backward()
             optimizer.step()
 
             total_loss += loss.item()
 
-        val_acc = evaluate(model, val_dataset, device)
-        train_accs.append(correct / total)
+        val_acc, val_precision, val_recall, val_f1 = evaluate(model, val_dataset, device)
+        train_accs.append((tp + tn) / (tp + tn + fp + fn))
         val_accs.append(val_acc)
 
-        print(f"Epoch {epoch + 1}, Loss: {total_loss / len(train_loader)}, Train Accuracy: {correct / total}, Val Accuracy: {val_acc}")
+        print(f"Epoch {epoch + 1}, Loss: {total_loss / len(train_loader)}, Train Accuracy: {(tp + tn) / (tp + tn + fp + fn)}, Train Precision: {tp / (tp + fp)}, Train Recall: {tp / (tp + fn)}, Train F1: {(2 * tp) / (2*tp + fp + fn)}")
+        print(f"Epoch {epoch + 1}, Val Accuracy: {val_acc}, Val Precision: {val_precision}, Val Recall: {val_recall}, Val F1: {val_f1}")
         print(all_outputs, all_outputs.sum())
         
         scheduler.step()
@@ -177,11 +192,11 @@ if __name__ == '__main__':
         padding = 20
         axs = subfigs[idx].subplots(1, len(images))
         for j, img in enumerate(images):
-            if j == label == prediction:  # Ground truth and model prediction match
+            if j == label and outputs[j // 6, j % 6] > THRESHOLD:  # Ground truth and model prediction match
                 img = ImageOps.expand(img, border=padding, fill=(255, 255, 0))
             elif j == label:  # Image is ground truth
                 img = ImageOps.expand(img, border=padding, fill=(0, 255, 0))
-            elif j == prediction:  # Image is predicted by model
+            elif outputs[j // 6, j % 6] > THRESHOLD:  # Image is predicted by model
                 img = ImageOps.expand(img, border=padding, fill=(255, 0, 0))
 
             axs[j].imshow(img)
@@ -189,6 +204,7 @@ if __name__ == '__main__':
 
         subfigs[idx].suptitle(f"{text} - Prediction: {prediction} - Confidence: {confidence}")
     plt.show()
+
 
 
 

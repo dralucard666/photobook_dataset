@@ -92,6 +92,6 @@ class VisionLanguageTransformer(nn.Module):
         x = self.fc_out(x)
         
         # Apply softmax to get probabilities
-        scores = F.softmax(x, dim=1)  # Shape: (batch_size, 6)
+        scores = F.sigmoid(x)  # Shape: (batch_size, 6)
         
         return scores
