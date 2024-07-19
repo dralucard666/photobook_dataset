@@ -1,7 +1,18 @@
+import re
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 from PIL import Image, ImageTk
 import os
+from discriminator.models.encoder import TextEncoder, ImageEncoder
+from discriminator.models.vision_language_transformer import VisionLanguageTransformer
+import torch
+from transformers import BertTokenizer
+from torchvision import transforms
+
+
+visual_encoder = ImageEncoder()
+text_encoder = TextEncoder()
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 
 class ImageSelectorApp:
@@ -9,9 +20,9 @@ class ImageSelectorApp:
         self.root = root
         self.root.title("Image Selector")
         self.root.geometry("800x800")
-
         self.selected_images = []
         self.image_refs = []  # Keep references to image objects
+        self.probabilities = []  # Store probabilities for each image
 
         # Create the frames
         self.left_frame = ttk.Frame(root)
@@ -91,9 +102,9 @@ class ImageSelectorApp:
         selected_item = self.tree.selection()[0]
         path = self.get_full_path(selected_item)
         if os.path.isfile(path) and path.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-            if len(self.selected_images) >= 3:
+            if len(self.selected_images) >= 5:
                 messagebox.showerror(
-                    "Error", "You can select up to 3 images only.")
+                    "Error", "You can select up to 5 images only.")
                 return
             self.selected_images.append(path)
             self.display_images()
@@ -138,6 +149,12 @@ class ImageSelectorApp:
                 x + img_width - 15, y + 15, window=button)
             button.lower()
 
+            # Display probability if available
+            if idx < len(self.probabilities):
+                prob = self.probabilities[idx]
+                self.canvas.create_text(
+                    x + img_width // 2, y + img_height + 10, text=f"{prob:.4f}", anchor=tk.CENTER)
+
             x += max_width + 10
             if x + max_width > self.canvas.winfo_width():
                 x = 10
@@ -153,6 +170,8 @@ class ImageSelectorApp:
 
     def remove_image(self, idx):
         del self.selected_images[idx]
+        if self.probabilities:
+            self.probabilities = []
         self.display_images()
 
     def send_message(self):
@@ -172,11 +191,43 @@ class ImageSelectorApp:
 
     def submit(self):
         chat_content = self.chat_log.get(1.0, tk.END).strip()
-        submission = {
-            "images": self.selected_images,
-            "chat": chat_content
-        }
-        print(submission)
+        img_features = torch.stack(
+            [self.load_image(path) for path in self.selected_images])
+
+        encoding = tokenizer(chat_content, padding=True,
+                             truncation=True, return_tensors='pt')
+        input_ids = encoding['input_ids']
+        attention_mask = encoding['attention_mask']
+        text_features = text_encoder(input_ids, attention_mask)
+
+        text_features = text_features.repeat(len(img_features), 1)
+        text_features = text_features.unsqueeze(1)
+        model = VisionLanguageTransformer()
+        checkpoint = torch.load(
+            './discriminator/checkpoints/model_sigmoid_hist.pth')
+        model.load_state_dict(checkpoint['model_state_dict'])
+        outputs = model(text_features, img_features)
+
+        # Get probabilities and update the probabilities list
+        self.probabilities = outputs.squeeze().tolist()
+        self.display_images()
+        print(outputs)
+
+    def load_image(self, image_path):
+        match = re.search(r'([^/]+/[^/]+)$', image_path)
+        if match:
+            image_path = 'images/'+match.group(1)
+
+            transform = transforms.Compose([
+                transforms.Resize((224, 224)),
+                transforms.ToTensor()
+            ])
+            image = Image.open(image_path).convert('RGB')
+            image = transform(image)
+            img = torch.stack([image])
+            img_features = visual_encoder(img)
+            return img_features
+        return None
 
 
 if __name__ == "__main__":
