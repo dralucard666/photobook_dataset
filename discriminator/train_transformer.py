@@ -141,7 +141,7 @@ if __name__ == '__main__':
         scheduler.step()
 
     # save model
-    # torch.save(model.state_dict(), 'model.pth')
+    torch.save(model.state_dict(), 'model_softmax_hist.pth')
 
     plt.plot(iteration_losses)
     plt.show()
@@ -188,6 +188,7 @@ if __name__ == '__main__':
             axs[j].axis('off')
 
         subfigs[idx].suptitle(f"{text} - Prediction: {prediction} - Confidence: {confidence}")
+    plt.savefig("predictions_history_softmax.png")
     plt.show()
 
 
@@ -234,10 +235,3 @@ if __name__ == '__main__':
 
 #     avg_loss = epoch_loss / len(training_loader)
 #     print(f"Epoch {epoch + 1}/{N_EPOCHS}, Loss: {avg_loss:.4f}")
-
-#     # torch.save({
-#     #     'epoch': epoch + 1,
-#     #     'model_state_dict': model.state_dict(),
-#     #     'optimizer_state_dict': optimizer.state_dict(),
-#     #     'loss': avg_loss,
-#     # }, f'checkpoints/checkpoint_epoch_{epoch + 1}.pth')
