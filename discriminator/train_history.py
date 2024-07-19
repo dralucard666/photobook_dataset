@@ -19,7 +19,7 @@ import argparse
 import sys
 from os.path import dirname, abspath
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
-
+from tqdm import tqdm
 
 # print(torch.__version__) #0.4.1
 
@@ -755,7 +755,7 @@ if __name__ == '__main__':
 
             count += 1
 
-            segments_text = torch.tensor(data['segment'])
+            segments_text = torch.tensor(data['segment']).to(device)
 
             image_set = data['image_set']
             no_images = image_set.shape[1]
