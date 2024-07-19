@@ -90,7 +90,7 @@ def evaluate(split_data_loader, dataset, breaking, normalize, mask, img_dim,
 
         count += 1
 
-        segments_text = torch.tensor(np.array(data['segment']))
+        segments_text = torch.tensor(data['segment'])
 
         normalizer += segments_text.shape[0]
 
@@ -128,7 +128,7 @@ def evaluate(split_data_loader, dataset, breaking, normalize, mask, img_dim,
 
                 context_separate[b][i] = img_features
 
-        lengths = data['length']
+        lengths = data['length'].cpu()
         targets = data['targets'].view(temp_batch_size, no_images, 1).float()
 
         out = model(segments_text, lengths,
@@ -279,7 +279,7 @@ def gold_evaluate(split_data_loader, dataset, breaking, normalize, mask, img_dim
 
         count += 1
 
-        segments_np = np.array(data['segment'])
+        segments_np = torch.tensor(data['segment'])
         segments_text = torch.tensor(segments_np)
 
         normalizer += segments_text.shape[0]
@@ -501,7 +501,7 @@ def gold_evaluate_write(split_data_loader, dataset, breaking, normalize, mask, i
 
                 count += 1
 
-                segments_text = torch.tensor(np.array(data['segment']))
+                segments_text = torch.tensor(data['segment'])
 
                 normalizer += segments_text.shape[0]
 
@@ -721,7 +721,7 @@ if __name__ == '__main__':
 
             count += 1
 
-            segments_text = torch.tensor(np.array(data['segment']))
+            segments_text = torch.tensor(data['segment'])
 
             image_set = data['image_set']
             no_images = image_set.shape[1]
