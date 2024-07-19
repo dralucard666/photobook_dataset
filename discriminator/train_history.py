@@ -12,7 +12,7 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import torch.utils.data
 
 from models.model_history import HistoryModelBlind
-from models.transformer2 import HistoryModelBlind
+##from models.transformer2 import HistoryModelBlind
 import os
 import argparse
 
@@ -749,6 +749,7 @@ if __name__ == '__main__':
         count = 0
 
         for i, data in enumerate(tqdm(training_loader)):
+            break
 
             if breaking and count == 5:
                 break
