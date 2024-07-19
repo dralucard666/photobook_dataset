@@ -9,7 +9,7 @@ from tqdm import tqdm
 import random
 import numpy as np
 
-from tokenize_data_2 import PhotoBookDataset
+from discriminator.tokenize_data import PhotoBookDataset
 from torch.utils.data import DataLoader
 
 from PIL import Image, ImageOps
