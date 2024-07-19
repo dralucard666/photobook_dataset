@@ -14,29 +14,29 @@ import random
 
 from PIL import Image
 
-EMBED_BASE_PATH = 'data/new_embedding'
-IMG_PATH = '../images'
+EMBED_BASE_PATH = "data/new_embedding"
+IMG_PATH = "../images"
 IMG_SIZE = 224
 
 
 class PhotoBookDataset(Dataset):
 
     def __init__(self, subset):
-        path = os.path.join(EMBED_BASE_PATH, f'encoded_transformed_{subset}.json')
-        with open(path, 'r') as f:
+        path = os.path.join(EMBED_BASE_PATH, f"encoded_transformed_{subset}.json")
+        with open(path, "r") as f:
             self.data = json.load(f)
 
-        with open(os.path.join(EMBED_BASE_PATH, 'image_embeddings.json'), 'r') as f:
+        with open(os.path.join(EMBED_BASE_PATH, "image_embeddings.json"), "r") as f:
             self.image_embeddings = json.load(f)
 
         self.shuffle_images: bool = False
 
     def __len__(self):
         return len(self.data)
-    
+
     def __getitem__(self, idx):
         item = self.data[idx]
-        text_embedding = torch.FloatTensor(item['text_embedding'])
+        text_embedding = torch.FloatTensor(item["text_embedding"])
         # image_paths = item['image_paths']
         # correct_path = image_paths[item['label']]
 
@@ -46,21 +46,19 @@ class PhotoBookDataset(Dataset):
         # label = image_paths.index(correct_path)
         # image_embeddings = [self.image_embeddings[img] for img in image_paths]
 
-
-        image_embeddings = [self.image_embeddings[img] for img in item['image_paths']]
+        image_embeddings = [self.image_embeddings[img] for img in item["image_paths"]]
         image_embeddings = torch.FloatTensor(image_embeddings)
-        label = item['label']
+        label = item["label"]
         return text_embedding, image_embeddings, label
 
 
-transform = transforms.Compose([
-    transforms.Resize((IMG_SIZE, IMG_SIZE)),
-    transforms.ToTensor()
-])
+transform = transforms.Compose(
+    [transforms.Resize((IMG_SIZE, IMG_SIZE)), transforms.ToTensor()]
+)
 
 
 def load_image(image_path):
-    image = Image.open(image_path).convert('RGB')
+    image = Image.open(image_path).convert("RGB")
     image = transform(image)
     return image
 
@@ -74,7 +72,7 @@ def process_json(data: dict):
     """Processes a dictionary of JSON data and extracts relevant information into a list of dictionaries.
 
     Args:
-        data (dict): A dictionary where keys are image identifiers and values are lists of dictionaries. 
+        data (dict): A dictionary where keys are image identifiers and values are lists of dictionaries.
                      Each inner dictionary contains 'Message_Text' and 'All_Images' keys.
 
     Returns:
@@ -90,12 +88,12 @@ def process_json(data: dict):
     for key, value in tqdm(data.items()):
         for item in value:
             object = {
-                'correct_image': key,
-                'text': item['Message_Text'],
-                'all_images': item['All_Images']
+                "correct_image": key,
+                "text": item["Message_Text"],
+                "all_images": item["All_Images"],
             }
             objects.append(object)
-            all_images.extend(item['All_Images'])
+            all_images.extend(item["All_Images"])
 
     return objects, list(set(all_images))
 
@@ -123,25 +121,25 @@ def create_embeddings(objects: list):
         the correct image given the text embeddings and the embeddings of the 6 images.
     """
     text_encoder = TextEncoder()
-    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
     new_objects = []
     for obj in tqdm(objects):
-        text = obj['text']
-        all_images = obj['all_images']
-        correct_image = obj['correct_image']
+        text = obj["text"]
+        all_images = obj["all_images"]
+        correct_image = obj["correct_image"]
 
-        tokens = tokenizer(text, padding=True, truncation=True, return_tensors='pt')
-        text_embed = text_encoder(tokens['input_ids'], tokens['attention_mask'])
-        
+        tokens = tokenizer(text, padding=True, truncation=True, return_tensors="pt")
+        text_embed = text_encoder(tokens["input_ids"], tokens["attention_mask"])
+
         images = [load_image(os.path.join(IMG_PATH, img)) for img in all_images]
         images = torch.stack(images)
 
         new_obj = {
-            'raw_text': text,
-            'text_embedding': text_embed.detach().numpy().tolist(),
-            'image_paths': all_images,
-            'label': all_images.index(correct_image)
+            "raw_text": text,
+            "text_embedding": text_embed.detach().numpy().tolist(),
+            "image_paths": all_images,
+            "label": all_images.index(correct_image),
         }
 
         new_objects.append(new_obj)
@@ -154,7 +152,7 @@ def create_image_embeddings(images: list, batch_size: int = 64):
 
     embeddings = []
     for i in tqdm(range(0, len(images), batch_size)):
-        img_names = images[i:i + batch_size]
+        img_names = images[i : i + batch_size]
         img_tensors = load_images(img_names)
 
         img_embeds = visual_encoder(img_tensors)
@@ -168,31 +166,30 @@ def create_image_embeddings(images: list, batch_size: int = 64):
 
 def main():
     all_images = []
-    sets = ['train', 'val', 'test']
+    sets = ["train", "val", "test"]
 
     for subset in sets:
-        path = os.path.join(EMBED_BASE_PATH, f'transformed_{subset}.json')
+        path = os.path.join(EMBED_BASE_PATH, f"transformed_{subset}.json")
 
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             data = json.load(f)
 
         objects, imgs = process_json(data)
         embeddings = create_embeddings(objects)
         all_images.extend(imgs)
 
-        save_path = os.path.join(EMBED_BASE_PATH, f'encoded_transformed_{subset}.json')
+        save_path = os.path.join(EMBED_BASE_PATH, f"encoded_transformed_{subset}.json")
 
-        with open(save_path, 'w') as f:
+        with open(save_path, "w") as f:
             json.dump(embeddings, f)
 
     all_images = list(set(all_images))
     img_embeds = create_image_embeddings(all_images)
 
-    with open(os.path.join(EMBED_BASE_PATH, 'image_embeddings.json'), 'w') as f:
+    with open(os.path.join(EMBED_BASE_PATH, "image_embeddings.json"), "w") as f:
         json.dump(img_embeds, f)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-    dataset = PhotoBookDataset('train')
-
+    dataset = PhotoBookDataset("train")

@@ -14,7 +14,9 @@ from utils.Vocab import Vocab
 
 
 def get_f1(prec, recall, beta):
-    return (1 + np.power(beta, 2)) * ((prec*recall)/(np.power(beta, 2)*prec+recall))
+    return (1 + np.power(beta, 2)) * (
+        (prec * recall) / (np.power(beta, 2) * prec + recall)
+    )
 
 
 def load_model(file, model):
@@ -24,13 +26,13 @@ def load_model(file, model):
     img_dim = 2048
     model = model(len_vocab, embedding_dim, hidden_dim, img_dim)
     optimizer = optim.Adam(model.parameters())
-    checkpoint = torch.load(file, map_location='cpu')
-    model.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    epoch = checkpoint['epoch']
-    loss = checkpoint['loss']
-    accuracy = checkpoint['accuracy']
-    args_train = checkpoint['args']
+    checkpoint = torch.load(file, map_location="cpu")
+    model.load_state_dict(checkpoint["model_state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    epoch = checkpoint["epoch"]
+    loss = checkpoint["loss"]
+    accuracy = checkpoint["accuracy"]
+    args_train = checkpoint["args"]
     return model, optimizer, epoch, loss, accuracy, args_train
 
 
@@ -38,8 +40,9 @@ def mask_attn(scores, actual_num_images, max_num_images, device):
     masks = []
 
     for n in range(len(actual_num_images)):
-        mask = [1] * actual_num_images[n] + [0] * \
-            (max_num_images - actual_num_images[n])
+        mask = [1] * actual_num_images[n] + [0] * (
+            max_num_images - actual_num_images[n]
+        )
         masks.append(mask)
 
     masks = torch.tensor(masks).unsqueeze(2).byte().to(device)
@@ -47,7 +50,18 @@ def mask_attn(scores, actual_num_images, max_num_images, device):
     return scores
 
 
-def evaluate(split_data_loader, dataset, breaking, normalize, mask, img_dim, model, epoch, args, isValidation):
+def evaluate(
+    split_data_loader,
+    dataset,
+    breaking,
+    normalize,
+    mask,
+    img_dim,
+    model,
+    epoch,
+    args,
+    isValidation,
+):
 
     print(weight)
     losses = []
@@ -71,11 +85,11 @@ def evaluate(split_data_loader, dataset, breaking, normalize, mask, img_dim, mod
 
         count += 1
 
-        segments_text = torch.tensor(data['segment'])
+        segments_text = torch.tensor(data["segment"])
 
         normalizer += segments_text.shape[0]
 
-        image_set = data['image_set']
+        image_set = data["image_set"]
         no_images = image_set.shape[1]
 
         actual_no_images = []
@@ -83,12 +97,13 @@ def evaluate(split_data_loader, dataset, breaking, normalize, mask, img_dim, mod
         for s in range(image_set.shape[0]):
             actual_no_images.append(len(image_set[s].nonzero()))
 
-        temp_batch_size = data['segment'].shape[0]
+        temp_batch_size = data["segment"].shape[0]
 
         context_sum = torch.zeros(temp_batch_size, img_dim).to(device)
 
-        context_separate = torch.zeros(
-            temp_batch_size, image_set.shape[1], img_dim).to(device)
+        context_separate = torch.zeros(temp_batch_size, image_set.shape[1], img_dim).to(
+            device
+        )
 
         for b in range(image_set.shape[0]):
 
@@ -98,10 +113,11 @@ def evaluate(split_data_loader, dataset, breaking, normalize, mask, img_dim, mod
 
                 img_id = str(image_set[b][i].item())
 
-                if img_id != '0':
+                if img_id != "0":
 
-                    img_features = torch.Tensor(
-                        dataset.image_features[img_id]).to(device)
+                    img_features = torch.Tensor(dataset.image_features[img_id]).to(
+                        device
+                    )
 
                     context_sum[b] += img_features
 
@@ -116,11 +132,10 @@ def evaluate(split_data_loader, dataset, breaking, normalize, mask, img_dim, mod
             # average #NOT USED in the model
             context_sum[b] = context_sum[b] / non_pad_item
 
-        lengths = data['length']
-        targets = data['targets'].view(temp_batch_size, no_images, 1).float()
+        lengths = data["length"]
+        targets = data["targets"].view(temp_batch_size, no_images, 1).float()
 
-        out = model(segments_text, lengths,
-                    context_separate, context_sum, normalize)
+        out = model(segments_text, lengths, context_separate, context_sum, normalize)
 
         if mask:
             out = mask_attn(out, actual_no_images, no_images, device)
@@ -163,47 +178,49 @@ def evaluate(split_data_loader, dataset, breaking, normalize, mask, img_dim, mod
 
         losses.append(loss.item())
 
-    print('Target 0 -', matching_0, normalizer_0)
-    print('Target 1 -', matching_1, normalizer_1)
-    print('Normalizer -', normalizer_01)
+    print("Target 0 -", matching_0, normalizer_0)
+    print("Target 1 -", matching_1, normalizer_1)
+    print("Normalizer -", normalizer_01)
 
     print()
 
     check_accs = (matching_0 + matching_1) / normalizer_01
     check_accs_0 = matching_0 / normalizer_0
     check_accs_1 = matching_1 / normalizer_1
-    print('0-matching acc:', check_accs_0)
-    print('1-matching acc:', check_accs_1)
-    print('All-matching acc:', check_accs)
+    print("0-matching acc:", check_accs_0)
+    print("1-matching acc:", check_accs_1)
+    print("All-matching acc:", check_accs)
 
     print()
 
-    print('Fully matching:', matching)
+    print("Fully matching:", matching)
     # normalizer is batch size, matching is the matching of the whole pred & target
-    print('Normalizer:', normalizer)
+    print("Normalizer:", normalizer)
     accs = matching / normalizer
 
     mean_loss = np.mean(losses)
-    print('Accuracy:', accs)
-    print('Mean loss:', mean_loss)
+    print("Accuracy:", accs)
+    print("Mean loss:", mean_loss)
 
     # IF NO TP AND FP precision is 1
 
-    prec_1 = matching_1 / \
-        (matching_1 + non_match_1) if (matching_1 + non_match_1) > 0 else 1
+    prec_1 = (
+        matching_1 / (matching_1 + non_match_1) if (matching_1 + non_match_1) > 0 else 1
+    )
 
     recall_1 = check_accs_1
 
-    prec_0 = matching_0 / \
-        (matching_0 + non_match_0) if (matching_0 + non_match_0) > 0 else 1
+    prec_0 = (
+        matching_0 / (matching_0 + non_match_0) if (matching_0 + non_match_0) > 0 else 1
+    )
     recall_0 = check_accs_0
 
     print()
-    print('Precision 0:', prec_0)
-    print('Precision 1:', prec_1)
+    print("Precision 0:", prec_0)
+    print("Precision 1:", prec_1)
 
-    print('Recall 0:', recall_0)
-    print('Recall 1:', recall_1)
+    print("Recall 0:", recall_0)
+    print("Recall 1:", recall_1)
 
     print()
 
@@ -212,35 +229,48 @@ def evaluate(split_data_loader, dataset, breaking, normalize, mask, img_dim, mod
     f1_0 = get_f1(prec_0, recall_0, beta)
     f1_1 = get_f1(prec_1, recall_1, beta)
 
-    f1 = (normalizer_0 * f1_0 + weight * normalizer_1 * f1_1) / \
-        (normalizer_0 + weight * normalizer_1)
+    f1 = (normalizer_0 * f1_0 + weight * normalizer_1 * f1_1) / (
+        normalizer_0 + weight * normalizer_1
+    )
 
-    micro_f1 = 2 * (matching_0 + matching_1) / (matching_1 + non_match_1 +
-                                                matching_0 + non_match_0 + normalizer_0 + normalizer_1)
+    micro_f1 = (
+        2
+        * (matching_0 + matching_1)
+        / (
+            matching_1
+            + non_match_1
+            + matching_0
+            + non_match_0
+            + normalizer_0
+            + normalizer_1
+        )
+    )
 
-    macro_f1 = (f1_0 + f1_1)/2
+    macro_f1 = (f1_0 + f1_1) / 2
 
     f1_0_b = get_f1(prec_0, recall_0, 2)
     f1_1_b = get_f1(prec_1, recall_1, 2)
 
-    beta_f1 = (normalizer_0 * f1_0_b + weight * normalizer_1 *
-               f1_1_b) / (normalizer_0 + weight * normalizer_1)
+    beta_f1 = (normalizer_0 * f1_0_b + weight * normalizer_1 * f1_1_b) / (
+        normalizer_0 + weight * normalizer_1
+    )
 
     print()
 
-    print('Weighted macro F1:', f1)
-    print('Beta-regulated weighted F1:', beta_f1)
-    print('Macro F1:', macro_f1)
-    print('Micro F1:', micro_f1)
+    print("Weighted macro F1:", f1)
+    print("Beta-regulated weighted F1:", beta_f1)
+    print("Macro F1:", macro_f1)
+    print("Micro F1:", micro_f1)
 
-    print('F1:', f1)
-    print('F1_0:', f1_0)
-    print('F1_1:', f1_1)
+    print("F1:", f1)
+    print("F1_0:", f1_0)
+    print("F1_1:", f1_1)
 
 
-model_file = 'model_blind_accs_2019-02-17-21-18-7.pkl'  # "dummy.pkl"
+model_file = "model_blind_accs_2019-02-17-21-18-7.pkl"  # "dummy.pkl"
 model, optimizer, epoch, loss, accuracy, args_train = load_model(
-    model_file, DiscriminatoryModelBlind)
+    model_file, DiscriminatoryModelBlind
+)
 
 args = args_train
 
@@ -253,14 +283,14 @@ trainset = SegmentDataset(
     data_dir=args.data_path,
     segment_file=args.segment_file,
     vectors_file=args.vectors_file,
-    split=args.split
+    split=args.split,
 )
 
 testset = SegmentDataset(
     data_dir=args.data_path,
     segment_file=args.segment_file,
     vectors_file=args.vectors_file,
-    split='test'
+    split="test",
 )
 
 
@@ -268,13 +298,13 @@ valset = SegmentDataset(
     data_dir=args.data_path,
     segment_file=args.segment_file,
     vectors_file=args.vectors_file,
-    split='val'
+    split="val",
 )
 
-print('vocab len', len(vocab))
-print('train len', len(trainset))
-print('test len', len(testset))
-print('val len', len(valset))
+print("vocab len", len(vocab))
+print("train len", len(trainset))
+print("test len", len(testset))
+print("val len", len(valset))
 
 embedding_dim = 512
 hidden_dim = 512
@@ -282,9 +312,9 @@ img_dim = 2048
 threshold = 0.5
 
 if torch.cuda.is_available():
-    device = torch.device('cuda')
+    device = torch.device("cuda")
 else:
-    device = torch.device('cpu')
+    device = torch.device("cpu")
 
 shuffle = args.shuffle
 normalize = args.normalize
@@ -304,14 +334,19 @@ else:
 batch_size = args.batch_size
 batch_size = 1  # NO PADDING
 
-load_params = {'batch_size': batch_size,
-               'shuffle': False,
-               'collate_fn': SegmentDataset.get_collate_fn(device)}
+load_params = {
+    "batch_size": batch_size,
+    "shuffle": False,
+    "collate_fn": SegmentDataset.get_collate_fn(device),
+}
 
-print('train vis context')
+print("train vis context")
 
-load_params_test = {'batch_size': batch_size,
-                    'shuffle': False, 'collate_fn': SegmentDataset.get_collate_fn(device)}
+load_params_test = {
+    "batch_size": batch_size,
+    "shuffle": False,
+    "collate_fn": SegmentDataset.get_collate_fn(device),
+}
 
 training_loader = torch.utils.data.DataLoader(trainset, **load_params)
 
@@ -327,7 +362,17 @@ with torch.no_grad():
     for i in range(10):
         isValidation = False
 
-        print('\nTest Eval')
+        print("\nTest Eval")
 
-        evaluate(test_loader, testset, breaking, normalize,
-                 mask, img_dim, model, epoch, args, isValidation)
+        evaluate(
+            test_loader,
+            testset,
+            breaking,
+            normalize,
+            mask,
+            img_dim,
+            model,
+            epoch,
+            args,
+            isValidation,
+        )

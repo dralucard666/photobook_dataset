@@ -2,6 +2,7 @@ import torch.nn as nn
 from transformers import BertModel
 from transformers import ViTModel
 
+
 class ImageEncoder(nn.Module):
     """A simple image encoder using Vision Transformer (ViT). It returns the embeddings of the [CLS] token.
 
@@ -23,15 +24,17 @@ class ImageEncoder(nn.Module):
 
     def __init__(self):
         super(ImageEncoder, self).__init__()
-        self.vit = ViTModel.from_pretrained('google/vit-base-patch16-224-in21k')
+        self.vit = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k")
         self.freeze()
 
     def forward(self, x):
         """x: (batch, num_channels, img_size, img_size)"""
         # pass the data through vit and return embeddings
         outputs = self.vit(x)
-        return outputs.last_hidden_state[:, 0, :] # only return the embeddings of the [CLS] token
-    
+        return outputs.last_hidden_state[
+            :, 0, :
+        ]  # only return the embeddings of the [CLS] token
+
     def freeze(self):
         for param in self.parameters():
             param.requires_grad = False
@@ -39,11 +42,11 @@ class ImageEncoder(nn.Module):
     def unfreeze(self):
         for param in self.parameters():
             param.requires_grad = True
-    
+
 
 class TextEncoder(nn.Module):
     """A simple text encoder using BERT. It returns the embeddings of the [CLS] token.
-    
+
     Example:
     >>> from transformers import BertTokenizer
     >>> from encoder import TextEncoder
@@ -66,14 +69,16 @@ class TextEncoder(nn.Module):
 
     def __init__(self):
         super(TextEncoder, self).__init__()
-        self.bert = BertModel.from_pretrained('bert-base-uncased')
+        self.bert = BertModel.from_pretrained("bert-base-uncased")
         self.freeze()
 
     def forward(self, input_ids, attention_mask):
         """x: (batch, seq_len)"""
         outputs = self.bert(input_ids, attention_mask=attention_mask)
-        return outputs.last_hidden_state[:, 0, :] # only return the embeddings of the [CLS] token
-    
+        return outputs.last_hidden_state[
+            :, 0, :
+        ]  # only return the embeddings of the [CLS] token
+
     def freeze(self):
         for param in self.parameters():
             param.requires_grad = False
@@ -81,8 +86,9 @@ class TextEncoder(nn.Module):
     def unfreeze(self):
         for param in self.parameters():
             param.requires_grad = True
-    
+
 
 if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
+
 class HistoryModelBlind(nn.Module):
     def __init__(self, vocab_size, embedding_dim, hidden_dim, img_dim):
         super().__init__()
@@ -10,11 +11,10 @@ class HistoryModelBlind(nn.Module):
         self.hidden_dim = hidden_dim
         self.img_dim = img_dim
 
-        self.embedding = nn.Embedding(vocab_size, self.embedding_dim, padding_idx = 0)
+        self.embedding = nn.Embedding(vocab_size, self.embedding_dim, padding_idx=0)
 
         l = nn.TransformerEncoderLayer(self.embedding_dim, 4, self.hidden_dim)
         self.lstm = nn.TransformerEncoder(l, 2)
-
 
         l2 = nn.TransformerEncoderLayer(self.embedding_dim, 4, self.hidden_dim)
         self.lstm_hist = nn.TransformerEncoder(l2, 2)
@@ -25,9 +25,18 @@ class HistoryModelBlind(nn.Module):
 
         self.relu = nn.ReLU()
 
-        self.dropout = nn.Dropout(0.0) #no dropout
+        self.dropout = nn.Dropout(0.0)  # no dropout
 
-    def forward(self, segment, prev_histories, lengths, separate_images, visual_context, normalize, device):
+    def forward(
+        self,
+        segment,
+        prev_histories,
+        lengths,
+        separate_images,
+        visual_context,
+        normalize,
+        device,
+    ):
         """
         @param segment (torch.LongTensor): Tensor of size [batch_size, sequence_length], segment text converted into indices
         @param prev_histories (list): List of size [batch_size], every item contains a list of size [image_set_size] variable depending on the visual context size per segment-to-be-resolved
@@ -41,7 +50,7 @@ class HistoryModelBlind(nn.Module):
 
         batch_size = segment.shape[0]
 
-        embeds_words = self.embedding(segment) #b, l, d
+        embeds_words = self.embedding(segment)  # b, l, d
 
         embeds_words = self.dropout(embeds_words)
 
@@ -63,14 +72,12 @@ class HistoryModelBlind(nn.Module):
 
         batch_out_hidden = hidden[:, reversed_idx]
 
-
-        #print(batch_out_hidden.shape, separate_images.shape)
+        # print(batch_out_hidden.shape, separate_images.shape)
 
         separate_images = self.linear_separate(separate_images)
         separate_images = self.dropout(separate_images)
 
-        #get linguistic history per image specific to that game up to that segment
-
+        # get linguistic history per image specific to that game up to that segment
 
         for b in range(batch_size):
 
@@ -82,16 +89,20 @@ class HistoryModelBlind(nn.Module):
 
                 if len(prev_hist[p]) > 0:
 
-                    #encode linguistic background
+                    # encode linguistic background
 
-                    hist_embeds = self.embedding(cur_img_hist).view(1,-1,self.embedding_dim)
+                    hist_embeds = self.embedding(cur_img_hist).view(
+                        1, -1, self.embedding_dim
+                    )
 
                     hist_hidden = self.lstm_hist(hist_embeds)
 
-                    separate_images[b][p] += torch.mean(hist_hidden[0].squeeze(), axis=0)
+                    separate_images[b][p] += torch.mean(
+                        hist_hidden[0].squeeze(), axis=0
+                    )
 
                 else:
-                    #no linguistic background, just use image features
+                    # no linguistic background, just use image features
                     pass
 
         if normalize:
@@ -99,8 +110,8 @@ class HistoryModelBlind(nn.Module):
 
             separate_images = F.normalize(separate_images, p=2, dim=2)
 
-
-        dot = torch.bmm(separate_images, batch_out_hidden.view(batch_size, self.hidden_dim,1))
+        dot = torch.bmm(
+            separate_images, batch_out_hidden.view(batch_size, self.hidden_dim, 1)
+        )
 
         return dot
-

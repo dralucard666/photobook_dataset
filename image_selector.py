@@ -12,7 +12,7 @@ from torchvision import transforms
 
 visual_encoder = ImageEncoder()
 text_encoder = TextEncoder()
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 
 class ImageSelectorApp:
@@ -59,31 +59,37 @@ class ImageSelectorApp:
 
         # Create chat interface
         self.chat_log = scrolledtext.ScrolledText(
-            self.bottom_right_frame, state='disabled', height=10)
+            self.bottom_right_frame, state="disabled", height=10
+        )
         self.chat_log.pack(side=tk.TOP, fill=tk.X)
 
         self.chat_entry = tk.Entry(self.bottom_right_frame)
         self.chat_entry.pack(side=tk.LEFT, expand=True, fill=tk.X)
 
         self.chat_button = tk.Button(
-            self.bottom_right_frame, text="Send", command=self.send_message)
+            self.bottom_right_frame, text="Send", command=self.send_message
+        )
         self.chat_button.pack(side=tk.LEFT)
 
         self.chat_role = tk.StringVar(value="A")
         self.role_a_button = tk.Radiobutton(
-            self.bottom_right_frame, text="A", variable=self.chat_role, value="A")
+            self.bottom_right_frame, text="A", variable=self.chat_role, value="A"
+        )
         self.role_b_button = tk.Radiobutton(
-            self.bottom_right_frame, text="B", variable=self.chat_role, value="B")
+            self.bottom_right_frame, text="B", variable=self.chat_role, value="B"
+        )
         self.role_a_button.pack(side=tk.LEFT)
         self.role_b_button.pack(side=tk.LEFT)
 
         # Add Clear Chat and Submit buttons
         self.clear_button = tk.Button(
-            self.bottom_right_frame, text="Clear Chat", command=self.clear_chat)
+            self.bottom_right_frame, text="Clear Chat", command=self.clear_chat
+        )
         self.clear_button.pack(side=tk.LEFT, padx=5)
 
         self.submit_button = tk.Button(
-            self.bottom_right_frame, text="Submit", command=self.submit)
+            self.bottom_right_frame, text="Submit", command=self.submit
+        )
         self.submit_button.pack(side=tk.LEFT, padx=5)
 
     def populate_tree(self, parent, path, depth, max_depth):
@@ -101,10 +107,11 @@ class ImageSelectorApp:
     def on_tree_double_click(self, event):
         selected_item = self.tree.selection()[0]
         path = self.get_full_path(selected_item)
-        if os.path.isfile(path) and path.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+        if os.path.isfile(path) and path.lower().endswith(
+            (".png", ".jpg", ".jpeg", ".gif")
+        ):
             if len(self.selected_images) >= 5:
-                messagebox.showerror(
-                    "Error", "You can select up to 5 images only.")
+                messagebox.showerror("Error", "You can select up to 5 images only.")
                 return
             self.selected_images.append(path)
             self.display_images()
@@ -134,26 +141,28 @@ class ImageSelectorApp:
             img.thumbnail((max_width, max_height))
             img_tk = ImageTk.PhotoImage(img)
 
-            item_id = self.canvas.create_image(
-                x, y, anchor=tk.NW, image=img_tk)
+            item_id = self.canvas.create_image(x, y, anchor=tk.NW, image=img_tk)
             # Keep a reference to the image object
             self.image_refs.append(img_tk)
 
             img_width, img_height = img.size
-            button = tk.Button(self.canvas, text="X",
-                               command=lambda idx=idx: self.remove_image(idx))
-            self.delete_buttons.append(
-                (button, x, y, x + img_width, y + img_height))
+            button = tk.Button(
+                self.canvas, text="X", command=lambda idx=idx: self.remove_image(idx)
+            )
+            self.delete_buttons.append((button, x, y, x + img_width, y + img_height))
 
-            self.canvas.create_window(
-                x + img_width - 15, y + 15, window=button)
+            self.canvas.create_window(x + img_width - 15, y + 15, window=button)
             button.lower()
 
             # Display probability if available
             if idx < len(self.probabilities):
                 prob = self.probabilities[idx]
                 self.canvas.create_text(
-                    x + img_width // 2, y + img_height + 10, text=f"{prob:.4f}", anchor=tk.CENTER)
+                    x + img_width // 2,
+                    y + img_height + 10,
+                    text=f"{prob:.4f}",
+                    anchor=tk.CENTER,
+                )
 
             x += max_width + 10
             if x + max_width > self.canvas.winfo_width():
@@ -178,34 +187,35 @@ class ImageSelectorApp:
         message = self.chat_entry.get()
         if message:
             role = self.chat_role.get()
-            self.chat_log.config(state='normal')
+            self.chat_log.config(state="normal")
             self.chat_log.insert(tk.END, f"{role}: {message}\n")
-            self.chat_log.config(state='disabled')
+            self.chat_log.config(state="disabled")
             self.chat_log.yview(tk.END)
             self.chat_entry.delete(0, tk.END)
 
     def clear_chat(self):
-        self.chat_log.config(state='normal')
+        self.chat_log.config(state="normal")
         self.chat_log.delete(1.0, tk.END)
-        self.chat_log.config(state='disabled')
+        self.chat_log.config(state="disabled")
 
     def submit(self):
         chat_content = self.chat_log.get(1.0, tk.END).strip()
         img_features = torch.stack(
-            [self.load_image(path) for path in self.selected_images])
+            [self.load_image(path) for path in self.selected_images]
+        )
 
-        encoding = tokenizer(chat_content, padding=True,
-                             truncation=True, return_tensors='pt')
-        input_ids = encoding['input_ids']
-        attention_mask = encoding['attention_mask']
+        encoding = tokenizer(
+            chat_content, padding=True, truncation=True, return_tensors="pt"
+        )
+        input_ids = encoding["input_ids"]
+        attention_mask = encoding["attention_mask"]
         text_features = text_encoder(input_ids, attention_mask)
 
         text_features = text_features.repeat(len(img_features), 1)
         text_features = text_features.unsqueeze(1)
         model = VisionLanguageTransformer()
-        checkpoint = torch.load(
-            './discriminator/checkpoints/model_sigmoid_hist.pth')
-        model.load_state_dict(checkpoint['model_state_dict'])
+        checkpoint = torch.load("./discriminator/checkpoints/model_sigmoid_hist.pth")
+        model.load_state_dict(checkpoint["model_state_dict"])
         outputs = model(text_features, img_features)
 
         # Get probabilities and update the probabilities list
@@ -214,15 +224,14 @@ class ImageSelectorApp:
         print(outputs)
 
     def load_image(self, image_path):
-        match = re.search(r'([^/]+/[^/]+)$', image_path)
+        match = re.search(r"([^/]+/[^/]+)$", image_path)
         if match:
-            image_path = 'images/'+match.group(1)
+            image_path = "images/" + match.group(1)
 
-            transform = transforms.Compose([
-                transforms.Resize((224, 224)),
-                transforms.ToTensor()
-            ])
-            image = Image.open(image_path).convert('RGB')
+            transform = transforms.Compose(
+                [transforms.Resize((224, 224)), transforms.ToTensor()]
+            )
+            image = Image.open(image_path).convert("RGB")
             image = transform(image)
             img = torch.stack([image])
             img_features = visual_encoder(img)

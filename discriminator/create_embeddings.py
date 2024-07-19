@@ -28,12 +28,14 @@ if __name__ == "__main__":
             data_point_img = data_point_img.resize((224, 224))
             data_point_texts: list[str] = ...
 
-            images.append(data_point_img) # add single image
-            texts.extend(data_point_texts) # add all texts
+            images.append(data_point_img)  # add single image
+            texts.extend(data_point_texts)  # add all texts
 
             # add image to text mapping
             img_id = len(images) - 1
-            images_to_text[img_id] = list(range(len(texts) - len(data_point_texts), len(texts)))
+            images_to_text[img_id] = list(
+                range(len(texts) - len(data_point_texts), len(texts))
+            )
 
     # convert images to tensors and permute to (batch, num_channels, img_size, img_size)
     images = [torch.tensor(image).permute(2, 0, 1) for image in images]
@@ -42,10 +44,10 @@ if __name__ == "__main__":
     image_loader = DataLoader(image_dataset, batch_size=BATCH_SIZE)
 
     # tokenize texts
-    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-    encoding = tokenizer(texts, padding=True, truncation=True, return_tensors='pt')
-    input_ids = encoding['input_ids']
-    attention_mask = encoding['attention_mask']
+    tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+    encoding = tokenizer(texts, padding=True, truncation=True, return_tensors="pt")
+    input_ids = encoding["input_ids"]
+    attention_mask = encoding["attention_mask"]
     text_dataset = TensorDataset(input_ids, attention_mask)
 
     # create image and text encoders
