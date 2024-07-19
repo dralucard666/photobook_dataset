@@ -9,7 +9,7 @@ from tqdm import tqdm
 import random
 import numpy as np
 
-from discriminator.tokenize_data import PhotoBookDataset
+from tokenize_data import PhotoBookDataset
 from torch.utils.data import DataLoader
 
 from PIL import Image, ImageOps
@@ -110,6 +110,8 @@ if __name__ == '__main__':
     iteration_losses = []
     train_accs, val_accs = [], []
 
+    best_loss = np.inf
+
     for epoch in range(N_EPOCHS):
 
         model.train()
@@ -151,6 +153,10 @@ if __name__ == '__main__':
         print(f"Epoch {epoch + 1}, Loss: {total_loss / len(train_loader)}, Train Accuracy: {(tp + tn) / (tp + tn + fp + fn)}, Train Precision: {tp / (tp + fp)}, Train Recall: {tp / (tp + fn)}, Train F1: {(2 * tp) / (2*tp + fp + fn)}")
         print(f"Epoch {epoch + 1}, Val Accuracy: {val_acc}, Val Precision: {val_precision}, Val Recall: {val_recall}, Val F1: {val_f1}")
         print(all_outputs, all_outputs.sum())
+
+        if best_loss > total_loss:
+            best_loss = total_loss
+            torch.save(model.state_dict(), "model.pth")
         
         scheduler.step()
 
